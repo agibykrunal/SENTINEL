@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SENTINEL — Anomaly Detection Systems</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+<style>
+/* ═══════════════════════════════════════════════════════════
+   SENTINEL DESIGN SYSTEM
+   Deep terminal aesthetic — void black, amber, crimson alerts
+═══════════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --void:#04050a;
+  --base:#080b12;
+  --panel:#0d1119;
+  --elevated:#131a24;
+  --hover:#1a2231;
+
+  --border-dim:rgba(255,255,255,.055);
+  --border-mid:rgba(255,255,255,.11);
+  --border-lit:rgba(255,255,255,.22);
+
+  --txt-1:#dde4f0;
+  --txt-2:#7e8ea6;
+  --txt-3:#404d60;
+
+  --amber:#f59e0b;
+  --amber-bg:rgba(245,158,11,.12);
+  --amber-glow:rgba(245,158,11,.35);
+
+  --red:#ef4444;
+  --red-bg:rgba(239,68,68,.1);
+  --red-glow:rgba(239,68,68,.3);
+
+  --green:#10b981;
+  --green-bg:rgba(16,185,129,.1);
+
+  --cyan:#06b6d4;
+  --cyan-bg:rgba(6,182,212,.1);
+
+  --violet:#8b5cf6;
+
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'Inter',sans-serif;
+
+  --r:6px;
+  --r-lg:10px;
+}
+
+html,body{height:100%;background:var(--void);color:var(--txt-1);font-family:var(--sans);font-size:13px;overflow:hidden}
+
+/* scanlines */
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px)}
+
+/* ── Layout ── */
+#app{display:grid;grid-template-columns:200px 1fr;grid-template-rows:46px 1fr;height:100vh}
+
+/* ── Topbar ── */
+#topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;background:var(--base);border-bottom:1px solid var(--border-dim);z-index:10}
+
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{
+  width:26px;height:26px;border:1.5px solid var(--amber);
+  border-radius:4px;display:grid;place-items:center;position:relative
+}
+.brand-mark::before{content:'';position:absolute;inset:4px;
+  background:var(--amber);clip-path:polygon(50% 0%,100% 100%,0% 100%)}
+.brand-name{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.18em}
+.brand-sub{font-size:9px;color:var(--txt-3);letter-spacing:.12em;text-transform:uppercase}
+
+.top-right{display:flex;align-items:center;gap:18px}
+.live-chip{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--green)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.clock{font-family:var(--mono);font-size:11px;color:var(--txt-3)}
+
+/* ── Sidebar ── */
+#sidebar{background:var(--base);border-right:1px solid var(--border-dim);
+  padding:14px 0;display:flex;flex-direction:column;gap:1px;overflow-y:auto}
+
+.nav-group{padding:10px 14px 3px;font-size:9px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--txt-3);font-family:var(--mono)}
+
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 14px;
+  cursor:pointer;font-size:12px;color:var(--txt-2);
+  border-left:2px solid transparent;transition:all .12s}
+.nav-item:hover{background:var(--elevated);color:var(--txt-1)}
+.nav-item.active{background:var(--amber-bg);color:var(--amber);border-left-color:var(--amber)}
+.nav-ico{font-size:13px;width:16px;text-align:center}
+.nav-badge{margin-left:auto;font-family:var(--mono);font-size:9px;
+  padding:1px 5px;border-radius:99px;background:var(--red-bg);color:var(--red)}
+
+/* ── Main ── */
+#main{overflow-y:auto;display:flex;flex-direction:column}
+.page{display:none;padding:18px;flex-direction:column;gap:14px;flex:1}
+.page.active{display:flex}
+
+/* ── Page header ── */
+.ph{display:flex;align-items:flex-start;justify-content:space-between}
+.ph-title{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.01em}
+.ph-sub{font-size:11px;color:var(--txt-3);margin-top:3px}
+
+/* ── KPI cards ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{background:var(--panel);border:1px solid var(--border-dim);border-radius:var(--r-lg);
+  padding:12px 14px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent,var(--amber))}
+.kpi-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--txt-3);margin-bottom:5px}
+.kpi-val{font-family:var(--mono);font-size:24px;font-weight:600;color:var(--kc,var(--txt-1));line-height:1}
+.kpi-sub{font-size:9px;color:var(--txt-3);margin-top:3px}
+
+/* ── Two column ── */
+.two-col{display:grid;grid-template-columns:1fr 1.55fr;gap:12px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* ── Panel ── */
+.panel{background:var(--panel);border:1px solid var(--border-dim);border-radius:var(--r-lg);overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;border-bottom:1px solid var(--border-dim)}
+.panel-title{font-size:10px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--txt-2);font-family:var(--mono)}
+.panel-body{padding:12px 14px}
+
+/* ── Live feed ── */
+.feed-wrap{max-height:270px;overflow-y:auto;padding:0 14px 10px}
+.feed-head,.feed-row{display:grid;grid-template-columns:58px 40px 76px 1fr 34px 46px;gap:7px;align-items:center}
+.feed-head{padding:7px 0 5px;border-bottom:1px solid var(--border-dim);margin-bottom:2px}
+.fh{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt-3);font-family:var(--mono)}
+.feed-row{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);transition:background .3s}
+.feed-row.anom{border-left:2px solid var(--red);padding-left:5px;background:rgba(239,68,68,.04);animation:rowflash .5s}
+@keyframes rowflash{from{background:rgba(239,68,68,.15)}to{background:rgba(239,68,68,.04)}}
+.fc{font-family:var(--mono);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-hi{color:var(--red)} .c-med{color:var(--amber)} .c-lo{color:var(--green)}
+
+/* ── Mini bar chart ── */
+.bar-chart{display:flex;align-items:flex-end;gap:3px;height:90px}
+.bar-pair{flex:1;display:flex;gap:2px;align-items:flex-end;height:100%}
+.bar{border-radius:2px 2px 0 0;min-height:2px;transition:height .4s}
+.bar.n{background:rgba(6,182,212,.55)} .bar.a{background:var(--red)}
+
+/* ── Sparkline ── */
+.spark-wrap{height:58px;position:relative}
+.spark-svg{width:100%;height:100%}
+.spark-t3{stroke:var(--red);stroke-dasharray:4,3;stroke-width:1}
+.spark-t2{stroke:var(--amber);stroke-dasharray:4,3;stroke-width:1}
+.spark-line{stroke:var(--green);stroke-width:1.5;fill:none}
+
+/* ── Histogram ── */
+.histo{display:flex;gap:4px;height:46px;align-items:flex-end}
+.histo-bar{flex:1;border-radius:2px 2px 0 0;min-height:0;transition:height .4s;opacity:.75}
+.histo-labels{display:flex;gap:4px;margin-top:2px}
+.histo-lbl{flex:1;text-align:center;font-family:var(--mono);font-size:8px;color:var(--txt-3)}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;
+  border-radius:3px;font-family:var(--mono);font-size:9px;
+  font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.b-critical{background:var(--red-bg);color:var(--red)}
+.b-high{background:var(--amber-bg);color:var(--amber)}
+.b-medium{background:var(--cyan-bg);color:var(--cyan)}
+.b-open{background:var(--cyan-bg);color:var(--cyan)}
+.b-resolved{background:var(--green-bg);color:var(--green)}
+.b-fp{background:rgba(139,92,246,.14);color:var(--violet)}
+
+/* ── Alert list ── */
+.alert-list{display:flex;flex-direction:column;gap:1px;max-height:250px;overflow-y:auto}
+.alert-item{display:flex;align-items:center;gap:9px;padding:7px 10px;
+  border-radius:var(--r);cursor:pointer;transition:background .12s}
+.alert-item:hover{background:var(--elevated)}
+.alert-item.sel{background:var(--amber-bg);border:1px solid rgba(245,158,11,.25)}
+.a-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.a-info{flex:1;min-width:0}
+.a-top{display:flex;align-items:center;justify-content:space-between}
+.a-ticker{font-weight:600;font-size:13px}
+.a-score{font-family:var(--mono);font-size:12px}
+.a-sub{font-size:10px;color:var(--txt-2);margin-top:1px;text-transform:capitalize}
+
+/* ── Detail panel ── */
+.detail{background:var(--elevated);border-radius:var(--r);padding:12px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
+.df-label{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--txt-3);font-family:var(--mono);margin-bottom:2px}
+.df-val{font-family:var(--mono);font-size:12px;color:var(--txt-1)}
+.prog-wrap{height:4px;background:var(--border-dim);border-radius:2px;overflow:hidden;margin-bottom:11px}
+.prog{height:100%;border-radius:2px;transition:width .5s}
+.action-row{display:flex;gap:7px}
+
+/* ── Breakdown bars ── */
+.bk-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.bk-lbl{font-family:var(--mono);font-size:10px;color:var(--txt-3);width:96px;flex-shrink:0}
+.bk-track{flex:1;height:4px;background:var(--border-dim);border-radius:2px;overflow:hidden}
+.bk-fill{height:100%;border-radius:2px}
+.bk-val{font-family:var(--mono);font-size:10px;color:var(--txt-2);width:34px;text-align:right;flex-shrink:0}
+
+/* ── Buttons ── */
+.btn{flex:1;padding:7px 0;background:transparent;
+  border:1px solid var(--border-mid);border-radius:var(--r);
+  color:var(--txt-2);font-family:var(--sans);font-size:11px;
+  cursor:pointer;transition:all .12s}
+.btn:hover{border-color:var(--border-lit);color:var(--txt-1);background:var(--hover)}
+.btn.confirm:hover{border-color:var(--green);color:var(--green);background:var(--green-bg)}
+.btn.reject:hover{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+.btn-primary{width:100%;padding:9px 0;background:var(--amber);border:none;
+  border-radius:var(--r);color:#000;font-family:var(--mono);font-size:11px;
+  font-weight:600;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;transition:all .12s}
+.btn-primary:hover{background:#fbbf24;box-shadow:0 0 18px var(--amber-glow)}
+.btn-sm{padding:5px 14px;font-size:11px}
+
+/* ── Score form ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.form-group{display:flex;flex-direction:column;gap:3px}
+.form-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt-3);font-family:var(--mono)}
+.form-input,.form-select{
+  padding:7px 9px;background:var(--elevated);border:1px solid var(--border-dim);
+  border-radius:var(--r);color:var(--txt-1);font-family:var(--mono);font-size:11px;
+  outline:none;transition:border-color .12s}
+.form-input:focus,.form-select:focus{border-color:var(--amber)}
+.form-select option{background:var(--elevated)}
+
+/* ── Gauge ring ── */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center}
+.gauge-ring{position:relative;width:90px;height:90px}
+.gauge-ring svg{transform:rotate(-90deg)}
+.gauge-track{stroke:var(--elevated);stroke-width:10;fill:none}
+.gauge-fill{stroke-width:10;fill:none;transition:stroke-dashoffset .6s;stroke-linecap:round}
+.gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge-num{font-family:var(--mono);font-size:19px;font-weight:600;line-height:1}
+.gauge-unit{font-size:9px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.1em}
+
+/* ── Flag chips ── */
+.flags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.flag{padding:2px 7px;border-radius:3px;background:var(--red-bg);
+  color:var(--red);font-family:var(--mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+
+/* ── Result card ── */
+.result-card{background:var(--elevated);border-radius:var(--r);padding:14px;border:1px solid var(--border-dim);animation:slideUp .25s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+
+/* ── FP table ── */
+.fp-table{width:100%;border-collapse:collapse}
+.fp-table th{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--txt-3);
+  padding:6px 8px;text-align:left;border-bottom:1px solid var(--border-dim);font-family:var(--mono)}
+.fp-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px;font-family:var(--mono)}
+.fp-table tr:hover td{background:var(--elevated)}
+.fp-btn{padding:2px 7px;border-radius:3px;border:1px solid var(--border-dim);
+  background:none;color:var(--txt-2);font-size:9px;font-family:var(--mono);cursor:pointer;transition:all .1s;margin-right:3px}
+.fp-btn:hover{border-color:var(--amber);color:var(--amber)}
+
+/* ── Model cards ── */
+.model-card{background:var(--elevated);border-radius:var(--r);padding:11px 13px;
+  border:1px solid var(--border-dim);border-left:3px solid var(--amber)}
+.model-name{font-weight:600;font-size:12px;margin-bottom:2px}
+.model-w{font-family:var(--mono);font-size:10px;color:var(--amber)}
+.model-desc{font-size:11px;color:var(--txt-2);margin-top:4px;line-height:1.5}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-mid);border-radius:2px}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Topbar ─────────────────────────────────────────────────────── -->
+  <header id="topbar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <div class="brand-name">SENTINEL</div>
+        <div class="brand-sub">Anomaly Detection Systems</div>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="live-chip"><div class="live-dot"></div><span>LIVE</span></div>
+      <span id="open-count" style="font-family:var(--mono);font-size:10px;color:var(--txt-2)">0 open alerts</span>
+      <div class="clock" id="clock">—</div>
+    </div>
+  </header>
+
+  <!-- ── Sidebar ────────────────────────────────────────────────────── -->
+  <nav id="sidebar">
+    <div class="nav-group">Monitor</div>
+    <div class="nav-item active" onclick="go('dashboard')"><span class="nav-ico">⬡</span>Dashboard</div>
+    <div class="nav-item" onclick="go('alerts')"><span class="nav-ico">⚠</span>Alerts<span class="nav-badge" id="nav-cnt">0</span></div>
+
+    <div class="nav-group">Analyze</div>
+    <div class="nav-item" onclick="go('score')"><span class="nav-ico">◎</span>Score Transaction</div>
+    <div class="nav-item" onclick="go('investigate')"><span class="nav-ico">⊕</span>Investigate</div>
+
+    <div class="nav-group">Manage</div>
+    <div class="nav-item" onclick="go('fp')"><span class="nav-ico">⊘</span>False Positives</div>
+    <div class="nav-item" onclick="go('models')"><span class="nav-ico">∿</span>Model Info</div>
+  </nav>
+
+  <!-- ── Main ───────────────────────────────────────────────────────── -->
+  <main id="main">
+
+    <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
+    <section class="page active" id="page-dashboard">
+      <div class="ph">
+        <div><div class="ph-title">DETECTION OVERVIEW</div>
+          <div class="ph-sub">IsolationForest · GMM · LOF · Z-score ensemble · realtime</div></div>
+        <button class="btn btn-sm" onclick="sim()" style="width:auto;padding:6px 14px">⚡ Simulate</button>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi" style="--accent:var(--red);--kc:var(--red)">
+          <div class="kpi-label">Open Alerts</div><div class="kpi-val" id="k-open">0</div><div class="kpi-sub">active threats</div></div>
+        <div class="kpi" style="--accent:var(--red);--kc:var(--red)">
+          <div class="kpi-label">Critical</div><div class="kpi-val" id="k-crit">0</div><div class="kpi-sub">score &gt;88</div></div>
+        <div class="kpi">
+          <div class="kpi-label">Avg Risk Score</div><div class="kpi-val" id="k-avg">—</div><div class="kpi-sub">last 50 txns</div></div>
+        <div class="kpi" style="--accent:var(--amber);--kc:var(--amber)">
+          <div class="kpi-label">False Positive Rate</div><div class="kpi-val" id="k-fp">—</div><div class="kpi-sub">of reviewed</div></div>
+      </div>
+
+      <div class="two-col">
+        <!-- Live feed -->
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">Live Transaction Feed</span>
+            <div class="live-chip" style="gap:4px"><div class="live-dot"></div></div>
+          </div>
+          <div class="feed-wrap">
+            <div class="feed-head">
+              <span class="fh">Time</span><span class="fh">Sym</span>
+              <span class="fh">Amount</span><span class="fh">User</span>
+              <span class="fh">Z</span><span class="fh">Score</span>
+            </div>
+            <div id="feed-rows"></div>
+          </div>
+        </div>
+
+        <!-- Charts panel -->
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">Detection Activity</span>
+            <div style="display:flex;gap:10px;font-size:10px;color:var(--txt-2)">
+              <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(6,182,212,.55);display:inline-block"></span>normal</span>
+              <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--red);display:inline-block"></span>anomaly</span>
+            </div>
+          </div>
+          <div class="panel-body" style="display:flex;flex-direction:column;gap:12px">
+            <div class="bar-chart" id="bar-chart"></div>
+            <div>
+              <div style="font-size:10px;color:var(--txt-2);margin-bottom:4px">Z-score stream · <span style="color:var(--red)">red</span>=3.0 · <span style="color:var(--amber)">amber</span>=2.0</div>
+              <div class="spark-wrap">
+                <svg class="spark-svg" id="spark" viewBox="0 0 400 58" preserveAspectRatio="none">
+                  <line class="spark-t3" id="st3" x1="0" x2="400"/>
+                  <line class="spark-t2" id="st2" x1="0" x2="400" style="stroke:var(--amber)"/>
+                  <polyline class="spark-line" id="sl"/>
+                </svg>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--txt-2);margin-bottom:5px">Risk score distribution</div>
+              <div class="histo" id="histo"></div>
+              <div class="histo-labels" id="histo-lbl"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ ALERTS ════════════════════════════════════════════════════════ -->
+    <section class="page" id="page-alerts">
+      <div class="ph">
+        <div><div class="ph-title">ALERT CENTER</div>
+          <div class="ph-sub">Review and act on flagged transactions</div></div>
+        <select class="form-select" id="alert-filter" onchange="renderAlerts()" style="width:140px;padding:5px 9px">
+          <option value="all">All Alerts</option>
+          <option value="open">Open Only</option>
+          <option value="critical">Critical Only</option>
+        </select>
+      </div>
+      <div class="two-col" style="flex:1">
+        <div class="panel" style="min-height:0">
+          <div class="panel-head"><span class="panel-title">Queue (<span id="a-queue-cnt">0</span>)</span></div>
+          <div class="panel-body" style="padding:6px 0"><div class="alert-list" id="alert-list"></div></div>
+        </div>
+        <div class="panel" id="alert-detail-panel">
+          <div class="panel-head"><span class="panel-title">Alert Detail</span></div>
+          <div class="panel-body" id="alert-detail-body" style="color:var(--txt-2);font-size:12px">
+            Select an alert from the queue to review details and take action.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ SCORE TRANSACTION ══════════════════════════════════════════════ -->
+    <section class="page" id="page-score">
+      <div class="ph">
+        <div><div class="ph-title">SCORE TRANSACTION</div>
+          <div class="ph-sub">Run the full ML ensemble on a single transaction</div></div>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Transaction Input</span></div>
+          <div class="panel-body" style="display:flex;flex-direction:column;gap:9px">
+            <div class="form-grid">
+              <div class="form-group"><label class="form-label">User ID</label>
+                <input class="form-input" id="f-user" value="USR-4821"/></div>
+              <div class="form-group"><label class="form-label">Ticker</label>
+                <select class="form-select" id="f-ticker">
+                  <option>AAPL</option><option>GOOGL</option><option>MSFT</option><option>TSLA</option>
+                  <option>AMZN</option><option>META</option><option>NVDA</option><option>JPM</option><option>GS</option><option>BAC</option>
+                </select></div>
+              <div class="form-group"><label class="form-label">Amount ($)</label>
+                <input class="form-input" id="f-amount" type="number" value="125000"/></div>
+              <div class="form-group"><label class="form-label">Volume</label>
+                <input class="form-input" id="f-volume" type="number" value="5000"/></div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label class="form-label">Pattern</label>
+                <select class="form-select" id="f-pattern">
+                  <option value="normal">Normal</option>
+                  <option value="spoofing">Spoofing</option>
+                  <option value="layering">Layering</option>
+                  <option value="wash-trading">Wash Trading</option>
+                  <option value="front-running">Front Running</option>
+                  <option value="pump-dump">Pump &amp; Dump</option>
+                </select></div>
+            </div>
+            <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--txt-2);cursor:pointer">
+              <input type="checkbox" id="f-vel" style="accent-color:var(--amber)"/>Velocity flag (high-frequency burst)</label>
+            <button class="btn-primary" onclick="scoreManual()">▶ SCORE TRANSACTION</button>
+            <button class="btn" onclick="sim()" style="width:100%">⚡ Auto-generate &amp; score</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Ensemble Result</span></div>
+          <div class="panel-body" id="score-result" style="color:var(--txt-2);font-size:12px">
+            Submit a transaction to see the ML ensemble breakdown.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ INVESTIGATE ════════════════════════════════════════════════════ -->
+    <section class="page" id="page-investigate">
+      <div class="ph">
+        <div><div class="ph-title">INVESTIGATION HUB</div>
+          <div class="ph-sub">Case management, workflow tracking, and model KPIs</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Fraud Type Distribution</span></div>
+        <div class="panel-body">
+          <div id="fraud-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Detection Pipeline</span></div>
+        <div class="panel-body">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div style="background:var(--elevated);border-radius:var(--r);padding:10px 12px;border-left:2px solid var(--green)">
+              <div style="font-size:9px;color:var(--txt-3);font-family:var(--mono);margin-bottom:2px">STEP 01</div>
+              <div style="font-size:12px;font-weight:600;margin-bottom:2px">Detect</div>
+              <div style="font-size:10px;color:var(--txt-2)">ML scoring &amp; rule engine</div></div>
+            <div style="background:var(--elevated);border-radius:var(--r);padding:10px 12px;border-left:2px solid var(--green)">
+              <div style="font-size:9px;color:var(--txt-3);font-family:var(--mono);margin-bottom:2px">STEP 02</div>
+              <div style="font-size:12px;font-weight:600;margin-bottom:2px">Score</div>
+              <div style="font-size:10px;color:var(--txt-2)">Multi-model fusion</div></div>
+            <div style="background:var(--elevated);border-radius:var(--r);padding:10px 12px;border-left:2px solid var(--amber)">
+              <div style="font-size:9px;color:var(--txt-3);font-family:var(--mono);margin-bottom:2px">STEP 03</div>
+              <div style="font-size:12px;font-weight:600;margin-bottom:2px">Investigate</div>
+              <div style="font-size:10px;color:var(--txt-2)">Case assignment &amp; review</div></div>
+            <div style="background:var(--elevated);border-radius:var(--r);padding:10px 12px;border-left:2px solid var(--border-dim)">
+              <div style="font-size:9px;color:var(--txt-3);font-family:var(--mono);margin-bottom:2px">STEP 04</div>
+              <div style="font-size:12px;font-weight:600;margin-bottom:2px">Resolve</div>
+              <div style="font-size:10px;color:var(--txt-2)">Confirm fraud or dismiss</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Model Performance KPIs</span></div>
+        <div class="panel-body">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div style="background:var(--elevated);border-radius:var(--r);padding:9px 11px">
+              <div style="font-size:9px;color:var(--txt-3);margin-bottom:3px">Precision</div>
+              <div style="font-family:var(--mono);font-size:21px;font-weight:600;color:var(--green)" id="m-prec">91.3%</div>
+              <div style="font-size:9px;color:var(--txt-3)">target &gt;90%</div></div>
+            <div style="background:var(--elevated);border-radius:var(--r);padding:9px 11px">
+              <div style="font-size:9px;color:var(--txt-3);margin-bottom:3px">Recall</div>
+              <div style="font-family:var(--mono);font-size:21px;font-weight:600;color:var(--green)" id="m-rec">87.2%</div>
+              <div style="font-size:9px;color:var(--txt-3)">target &gt;85%</div></div>
+            <div style="background:var(--elevated);border-radius:var(--r);padding:9px 11px">
+              <div style="font-size:9px;color:var(--txt-3);margin-bottom:3px">F1-Score</div>
+              <div style="font-family:var(--mono);font-size:21px;font-weight:600;color:var(--green)">89.2%</div>
+              <div style="font-size:9px;color:var(--txt-3)">target &gt;85%</div></div>
+            <div style="background:var(--elevated);border-radius:var(--r);padding:9px 11px">
+              <div style="font-size:9px;color:var(--txt-3);margin-bottom:3px">FP Rate</div>
+              <div style="font-family:var(--mono);font-size:21px;font-weight:600;color:var(--green)" id="m-fpr">4.1%</div>
+              <div style="font-size:9px;color:var(--txt-3)">target &lt;5%</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ FALSE POSITIVES ════════════════════════════════════════════════ -->
+    <section class="page" id="page-fp">
+      <div class="ph">
+        <div><div class="ph-title">FALSE POSITIVE MANAGEMENT</div>
+          <div class="ph-sub">Review analyst decisions and model feedback loop</div></div>
+        <select class="form-select" id="fp-filter" onchange="renderFP()" style="width:150px;padding:5px 9px">
+          <option value="all">All Records</option>
+          <option value="open">Open</option>
+          <option value="false_positive">False Positives</option>
+          <option value="resolved">Confirmed Fraud</option>
+        </select>
+      </div>
+      <div class="panel" style="flex:1">
+        <div class="panel-head"><span class="panel-title">Review History (<span id="fp-cnt">0</span>)</span></div>
+        <div style="overflow-x:auto;max-height:300px;overflow-y:auto">
+          <table class="fp-table" style="width:100%">
+            <thead><tr>
+              <th>Status</th><th>Alert ID</th><th>Ticker</th><th>Type</th>
+              <th>User</th><th>Score</th><th>Time</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="fp-tbody"></tbody>
+          </table>
+        </div>
+        <div class="panel-body" style="border-top:1px solid var(--border-dim)">
+          <div style="display:flex;gap:20px;font-size:11px;flex-wrap:wrap">
+            <span style="color:var(--txt-2)">Reviewed: <span style="font-family:var(--mono);color:var(--txt-1)" id="fp-reviewed">0</span></span>
+            <span style="color:var(--txt-2)">Confirmed fraud: <span style="font-family:var(--mono);color:var(--red)" id="fp-fraud">0</span></span>
+            <span style="color:var(--txt-2)">False positives: <span style="font-family:var(--mono);color:var(--amber)" id="fp-fpos">0</span></span>
+            <span style="color:var(--txt-2)">FP rate: <span style="font-family:var(--mono);color:var(--txt-1)" id="fp-rate">—</span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ MODEL INFO ═════════════════════════════════════════════════════ -->
+    <section class="page" id="page-models">
+      <div class="ph">
+        <div><div class="ph-title">MODEL ARCHITECTURE</div>
+          <div class="ph-sub">Ensemble composition and feature engineering pipeline</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="model-card" style="border-left-color:var(--cyan)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="model-name">Isolation Forest</div>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--cyan)">weight 35%</span></div>
+          <div class="model-desc">Global anomaly detection via random recursive partitioning. Anomalies isolated in fewer splits. O(n log n). 200 trees, max_samples=256.</div>
+        </div>
+        <div class="model-card" style="border-left-color:var(--violet)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="model-name">Gaussian Mixture Model</div>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--violet)">weight 30%</span></div>
+          <div class="model-desc">8-component probabilistic density model. Anomaly score = −log P(x). Trained with EM. Identifies transactions outside learned behaviour clusters.</div>
+        </div>
+        <div class="model-card" style="border-left-color:var(--green)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="model-name">Local Outlier Factor</div>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--green)">weight 20%</span></div>
+          <div class="model-desc">Density-based local anomaly detection. LOF &gt; 1 means sparse region relative to neighbours. Catches contextual anomalies missed by global methods. k=20.</div>
+        </div>
+        <div class="model-card" style="border-left-color:var(--amber)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="model-name">Statistical Z-score</div>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--amber)">weight 15%</span></div>
+          <div class="model-desc">Chi-squared Mahalanobis distance across feature space. Threshold at 97.5th percentile. Per-user rolling baseline via 50-transaction window.</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Feature Engineering Pipeline</span></div>
+        <div class="panel-body">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
+            ${["log(amount)","log(volume)","user_z_score_amount","user_z_score_volume","velocity_per_min","norm_tx_count"].map(f=>`
+            <div style="background:var(--elevated);border-radius:var(--r);padding:7px 10px;border:1px solid var(--border-dim)">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--amber)">${f}</span></div>`).join('')}
+          </div>
+          <div style="margin-top:10px;font-size:11px;color:var(--txt-2)">All features scaled to [0, 1] via MinMaxScaler. User-level contextual features computed from a rolling 50-transaction window.</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Threshold Calibration</span></div>
+        <div class="panel-body" style="display:flex;gap:22px;flex-wrap:wrap">
+          <div><div style="font-size:10px;color:var(--txt-3)">Anomaly gate</div><div style="font-family:var(--mono);font-size:18px;color:var(--cyan)">≥ 72</div></div>
+          <div><div style="font-size:10px;color:var(--txt-3)">HIGH severity</div><div style="font-family:var(--mono);font-size:18px;color:var(--amber)">≥ 76</div></div>
+          <div><div style="font-size:10px;color:var(--txt-3)">CRITICAL severity</div><div style="font-family:var(--mono);font-size:18px;color:var(--red)">≥ 88</div></div>
+          <div><div style="font-size:10px;color:var(--txt-3)">Latency target</div><div style="font-family:var(--mono);font-size:18px;color:var(--green)">&lt;50ms</div></div>
+          <div><div style="font-size:10px;color:var(--txt-3)">Detection rate</div><div style="font-family:var(--mono);font-size:18px;color:var(--green)">&gt;85%</div></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════
+//  SENTINEL Frontend  ·  Vanilla JS  ·  Mock mode (no backend needed)
+//  To connect to live API: set USE_MOCK = false and run backend on :8000
+// ════════════════════════════════════════════════════════════════════════
+
+const API   = 'http://localhost:8000/api/v1';
+const MOCK  = true;  // ← set false when backend is running
+
+// ── State ────────────────────────────────────────────────────────────────
+const S = {
+  alerts   : [],
+  txHistory: [],
+  zHistory : [],
+  histoBkts: [0,0,0,0,0,0],
+  scores   : [],
+  selAlert : null,
+};
+
+// ── Mock scoring engine (mirrors Python logic) ────────────────────────
+const PATTERN_SCORE = {spoofing:.90,layering:.82,'wash-trading':.79,'front-running':.85,'pump-dump':.91};
+
+function mockScore(tx){
+  const base  = PATTERN_SCORE[tx.pattern] ?? (Math.random()*.32+.05);
+  const rnd   = (Math.random()-.5)*.14;
+  let raw     = Math.min(Math.max(base+rnd,0),1);
+  const flags = [];
+  if(tx.pattern==='spoofing')      flags.push('SPOOFING_PATTERN');
+  if(tx.pattern==='layering')      flags.push('LAYERING_DETECTED');
+  if(tx.pattern==='pump-dump')     flags.push('PUMP_DUMP_SIGNAL');
+  if(tx.pattern==='front-running') flags.push('FRONT_RUNNING_SIGNAL');
+  if(tx.pattern==='wash-trading')  flags.push('WASH_TRADE_SIGNAL');
+  if(tx.amount>500000)             flags.push('LARGE_AMOUNT');
+  if(tx.velocity_flag)             flags.push('HIGH_VELOCITY');
+  if(flags.length) raw = Math.max(raw,.72);
+  const score   = Math.round(raw*1000)/10;
+  const isAnom  = score>=72;
+  const sev     = score>=88?'critical':score>=76?'high':'medium';
+  const zRaw    = isAnom?(Math.random()*4+2.6):(Math.random()*1.8+.1);
+  return{
+    transaction_id:tx.id||'TXN-'+Date.now().toString(36).toUpperCase(),
+    score,is_anomaly:isAnom,severity:sev,
+    z_score:Math.round(zRaw*100)/100,
+    breakdown:{
+      isolation_forest:Math.round(Math.min(score*.9+Math.random()*15,100)*10)/10,
+      gmm             :Math.round(Math.min(score*1.1+Math.random()*10,100)*10)/10,
+      lof             :Math.round(Math.min(score*.7+Math.random()*20,100)*10)/10,
+      statistical     :Math.round(Math.min(score*.95+Math.random()*10,100)*10)/10,
+    },
+    rule_flags:flags, pattern:tx.pattern||'normal',
+    alert_id:isAnom?'ALT-'+Math.random().toString(36).slice(2,12).toUpperCase():null,
+  };
+}
+
+async function apiCall(path,method='GET',body=null){
+  if(MOCK) return null;
+  try{
+    const r=await fetch(API+path,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):null});
+    return r.json();
+  }catch{return null;}
+}
+
+// ── Generate transaction ──────────────────────────────────────────────
+const TICKERS=['AAPL','GOOGL','MSFT','TSLA','AMZN','META','NVDA','JPM','GS','BAC'];
+const USERS  =['USR-4821','USR-7734','USR-2901','USR-5512','USR-8830'];
+const PATS   =['normal','normal','normal','spoofing','layering','wash-trading','front-running','pump-dump'];
+
+function genTx(forceAnom){
+  const anom    = forceAnom||(Math.random()>.72);
+  const pattern = anom?PATS[3+Math.floor(Math.random()*5)]:'normal';
+  return{
+    id     :'TXN-'+Date.now().toString(36).toUpperCase(),
+    user   :USERS[Math.floor(Math.random()*USERS.length)],
+    ticker :TICKERS[Math.floor(Math.random()*TICKERS.length)],
+    amount : anom?Math.round(Math.random()*550000+50000):Math.round(Math.random()*49000+500),
+    volume : anom?Math.floor(Math.random()*75000+5000):Math.floor(Math.random()*4900+100),
+    pattern,
+    velocity_flag:anom&&Math.random()>.5,
+    timestamp:Date.now()/1000,
+  };
+}
+
+// ── Score & store ─────────────────────────────────────────────────────
+async function scoreTx(tx){
+  const r = MOCK ? mockScore(tx) : (await apiCall('/score','POST',tx)||mockScore(tx));
+  S.scores.push(r.score);
+  if(S.scores.length>50) S.scores.shift();
+
+  const time = new Date().toLocaleTimeString('en',{hour12:false});
+  S.txHistory.unshift({...tx,...r,time});
+  if(S.txHistory.length>50) S.txHistory.pop();
+
+  S.zHistory.push(r.z_score);
+  if(S.zHistory.length>24) S.zHistory.shift();
+
+  const s=r.score;
+  if(s<20)S.histoBkts[0]++;else if(s<40)S.histoBkts[1]++;
+  else if(s<60)S.histoBkts[2]++;else if(s<75)S.histoBkts[3]++;
+  else if(s<90)S.histoBkts[4]++;else S.histoBkts[5]++;
+
+  if(r.is_anomaly&&r.alert_id){
+    S.alerts.unshift({
+      id:r.alert_id, txn_id:r.transaction_id,
+      severity:r.severity, fraud_type:r.pattern!=='normal'?r.pattern:_inferType(r.score),
+      ticker:tx.ticker, user:tx.user, score:r.score,
+      status:'open', timestamp:time,
+      rule_flags:r.rule_flags, z_score:r.z_score, breakdown:r.breakdown,
+    });
+    if(S.alerts.length>100) S.alerts.pop();
+  }
+  return r;
+}
+
+function _inferType(s){return s>90?'spoofing':s>82?'layering':s>75?'front-running':'wash-trading';}
+
+// ── Simulate ──────────────────────────────────────────────────────────
+async function sim(){
+  const r = await scoreTx(genTx());
+  updateDash();
+  if(document.getElementById('page-score').classList.contains('active')) showResult(genTx(),r);
+}
+
+// ── Manual score ──────────────────────────────────────────────────────
+async function scoreManual(){
+  const tx={
+    id     :'TXN-'+Date.now().toString(36).toUpperCase(),
+    user   :document.getElementById('f-user').value||'USR-ANON',
+    ticker :document.getElementById('f-ticker').value,
+    amount :parseFloat(document.getElementById('f-amount').value)||1000,
+    volume :parseInt(document.getElementById('f-volume').value)||1000,
+    pattern:document.getElementById('f-pattern').value,
+    velocity_flag:document.getElementById('f-vel').checked,
+    timestamp:Date.now()/1000,
+  };
+  const r = await scoreTx(tx);
+  showResult(tx,r);
+  updateDash();
+}
+
+// ── Show score result ─────────────────────────────────────────────────
+function showResult(tx,r){
+  const col = r.score>75?'var(--red)':r.score>60?'var(--amber)':'var(--green)';
+  const C   = 2*Math.PI*38;
+  const off = C-(r.score/100)*C;
+  const bkHTML = Object.entries(r.breakdown).map(([k,v])=>{
+    const c=v>75?'var(--red)':v>55?'var(--amber)':'var(--green)';
+    return`<div class="bk-row"><span class="bk-lbl">${k.replace('_',' ')}</span>
+      <div class="bk-track"><div class="bk-fill" style="width:${Math.min(v,100)}%;background:${c}"></div></div>
+      <span class="bk-val">${v}%</span></div>`;
+  }).join('');
+  const flagsHTML = r.rule_flags.length
+    ?`<div class="flags">${r.rule_flags.map(f=>`<span class="flag">${f}</span>`).join('')}</div>`:'';
+
+  document.getElementById('score-result').innerHTML=`
+  <div class="result-card">
+    <div class="result-header">
+      <div>
+        <div style="font-size:10px;color:var(--txt-3);font-family:var(--mono)">${r.transaction_id}</div>
+        <div style="margin-top:4px;display:flex;gap:7px;align-items:center">
+          <span class="badge b-${r.severity}">${r.severity}</span>
+          <span style="font-size:10px;color:var(--txt-2);text-transform:capitalize">${r.pattern}</span>
+        </div>
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge-ring">
+          <svg viewBox="0 0 96 96" width="90" height="90">
+            <circle class="gauge-track" cx="48" cy="48" r="38"/>
+            <circle class="gauge-fill" cx="48" cy="48" r="38" stroke="${col}"
+              stroke-dasharray="${C}" stroke-dashoffset="${off}"/>
+          </svg>
+          <div class="gauge-center">
+            <div class="gauge-num" style="color:${col}">${r.score}</div>
+            <div class="gauge-unit">risk</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-bottom:9px">
+      <div style="font-size:9px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.1em;font-family:var(--mono);margin-bottom:5px">Model Breakdown</div>
+      ${bkHTML}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:9px">
+      <div><div style="font-size:9px;color:var(--txt-3);text-transform:uppercase">Z-score</div>
+        <div style="font-family:var(--mono);font-size:13px;color:${r.z_score>3?'var(--red)':'var(--amber)'}">${r.z_score}</div></div>
+      <div><div style="font-size:9px;color:var(--txt-3);text-transform:uppercase">Alert ID</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--txt-2)">${r.alert_id||'—'}</div></div>
+    </div>
+    ${flagsHTML}
+    ${r.is_anomaly
+      ?`<div style="margin-top:9px;padding:7px 9px;background:var(--red-bg);border-radius:var(--r);font-size:11px;color:var(--red);border:1px solid rgba(239,68,68,.18)">⚠ ANOMALY DETECTED — Alert created in queue</div>`
+      :`<div style="margin-top:9px;padding:7px 9px;background:var(--green-bg);border-radius:var(--r);font-size:11px;color:var(--green)">✓ TRANSACTION NORMAL — No action required</div>`}
+  </div>`;
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────
+function updateDash(){
+  const open  = S.alerts.filter(a=>a.status==='open').length;
+  const crit  = S.alerts.filter(a=>a.status==='open'&&a.severity==='critical').length;
+  const rev   = S.alerts.filter(a=>a.status!=='open').length;
+  const fp    = S.alerts.filter(a=>a.status==='false_positive').length;
+  const fpR   = rev>0?(fp/rev*100).toFixed(1)+'%':'—';
+  const avg   = S.scores.length?(S.scores.reduce((a,b)=>a+b,0)/S.scores.length).toFixed(1)+'%':'—';
+
+  set('k-open',open); set('k-crit',crit); set('k-avg',avg); set('k-fp',fpR);
+  set('open-count',`${open} open alerts`); set('nav-cnt',open);
+
+  renderFeed(); renderBarChart(); renderSpark(); renderHisto();
+  renderAlerts(); renderFP(); renderFraudTypes();
+}
+
+function set(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+
+// ── Feed ──────────────────────────────────────────────────────────────
+function renderFeed(){
+  const rows=S.txHistory.slice(0,22).map((t,i)=>{
+    const col=t.score>75?'c-hi':t.score>55?'c-med':'c-lo';
+    const amt=t.amount>=1000?(t.amount/1000).toFixed(0)+'K':t.amount;
+    return`<div class="feed-row${i===0&&t.is_anomaly?' anom':''}">
+      <span class="fc" style="color:var(--txt-3)">${t.time||'—'}</span>
+      <span class="fc" style="font-weight:600">${t.ticker}</span>
+      <span class="fc" style="color:var(--txt-2)">$${amt}</span>
+      <span class="fc" style="color:var(--txt-3)">${t.user}</span>
+      <span class="fc ${t.z_score>3?'c-hi':t.z_score>2?'c-med':''}">${(t.z_score||0).toFixed(1)}</span>
+      <span class="fc ${col}" style="text-align:right;font-weight:600">${(t.score||0).toFixed(0)}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('feed-rows').innerHTML=rows||
+    '<div style="padding:10px;color:var(--txt-3);font-size:11px">No transactions yet — click Simulate</div>';
+}
+
+// ── Bar chart ─────────────────────────────────────────────────────────
+function renderBarChart(){
+  const wrap=document.getElementById('bar-chart');
+  if(!S.txHistory.length)return;
+  const recent=S.txHistory.slice(0,14);
+  const groups=[];
+  for(let i=0;i<recent.length;i+=2){
+    const c=recent.slice(i,i+2);
+    groups.push({n:c.filter(t=>!t.is_anomaly).length,a:c.filter(t=>t.is_anomaly).length});
+  }
+  const mx=Math.max(...groups.map(g=>Math.max(g.n,g.a)),1);
+  wrap.innerHTML=groups.map(g=>`
+    <div class="bar-pair">
+      <div class="bar n" style="flex:1;height:${Math.round((g.n/mx)*82)}px"></div>
+      <div class="bar a" style="flex:1;height:${Math.round((g.a/mx)*82)}px"></div>
+    </div>`).join('');
+}
+
+// ── Sparkline ─────────────────────────────────────────────────────────
+function renderSpark(){
+  const data=S.zHistory;if(data.length<2)return;
+  const W=400,H=58,mx=8;
+  const pts=data.map((z,i)=>`${(i/(data.length-1))*W},${H-(z/mx)*H}`).join(' ');
+  const t3y=H-(3/mx)*H, t2y=H-(2/mx)*H;
+  setAttr('st3','y1',t3y);setAttr('st3','y2',t3y);
+  setAttr('st2','y1',t2y);setAttr('st2','y2',t2y);
+  setAttr('sl','points',pts);
+}
+function setAttr(id,attr,val){const el=document.getElementById(id);if(el)el.setAttribute(attr,val);}
+
+// ── Histogram ─────────────────────────────────────────────────────────
+function renderHisto(){
+  const bkts=S.histoBkts;
+  const mx=Math.max(...bkts,1);
+  const cols=['var(--green)','var(--green)','var(--amber)','var(--amber)','var(--red)','var(--red)'];
+  const lbls=['0-20','20-40','40-60','60-75','75-90','90+'];
+  document.getElementById('histo').innerHTML=bkts.map((v,i)=>
+    `<div class="histo-bar" style="flex:1;background:${cols[i]};height:${Math.round((v/mx)*42)}px;min-height:${v?2:0}px"></div>`
+  ).join('');
+  document.getElementById('histo-lbl').innerHTML=lbls.map(l=>
+    `<div class="histo-lbl">${l}</div>`).join('');
+}
+
+// ── Alerts ────────────────────────────────────────────────────────────
+function renderAlerts(){
+  const filter=document.getElementById('alert-filter')?.value||'all';
+  let a=S.alerts;
+  if(filter==='open')    a=a.filter(x=>x.status==='open');
+  if(filter==='critical')a=a.filter(x=>x.severity==='critical'&&x.status==='open');
+  set('a-queue-cnt',a.length);
+  const dotCol=sev=>sev==='critical'?'var(--red)':sev==='high'?'var(--amber)':'var(--cyan)';
+  document.getElementById('alert-list').innerHTML=a.slice(0,30).map(al=>`
+    <div class="alert-item ${S.selAlert===al.id?'sel':''}" onclick="selectAlert('${al.id}')">
+      <div class="a-dot" style="background:${dotCol(al.severity)}"></div>
+      <div class="a-info">
+        <div class="a-top">
+          <span class="a-ticker">${al.ticker}</span>
+          <span class="a-score" style="color:${dotCol(al.severity)}">${(al.score||0).toFixed(0)}</span>
+        </div>
+        <div class="a-sub">${al.fraud_type} · ${al.user} · ${al.timestamp}</div>
+      </div>
+    </div>`).join('')||'<div style="padding:10px;color:var(--txt-3);font-size:11px">No alerts</div>';
+}
+
+function selectAlert(id){
+  S.selAlert=id;
+  const al=S.alerts.find(x=>x.id===id);
+  if(!al)return;
+  renderAlerts();
+  const col=al.severity==='critical'?'var(--red)':al.severity==='high'?'var(--amber)':'var(--cyan)';
+  const bkHTML=al.breakdown?Object.entries(al.breakdown).map(([k,v])=>{
+    const c=v>75?'var(--red)':v>55?'var(--amber)':'var(--green)';
+    return`<div class="bk-row"><span class="bk-lbl">${k.replace('_',' ')}</span>
+      <div class="bk-track"><div class="bk-fill" style="width:${Math.min(v,100)}%;background:${c}"></div></div>
+      <span class="bk-val">${v}%</span></div>`;}).join(''):'';
+  const flagsHTML=(al.rule_flags||[]).length
+    ?`<div class="flags">${al.rule_flags.map(f=>`<span class="flag">${f}</span>`).join('')}</div>`:'';
+
+  document.getElementById('alert-detail-body').innerHTML=`
+  <div class="detail">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:11px">
+      <div>
+        <div style="font-family:var(--mono);font-size:13px;font-weight:600">${al.id}</div>
+        <div style="font-size:10px;color:var(--txt-3);margin-top:1px">${al.txn_id}</div>
+      </div>
+      <span class="badge b-${al.severity}">${al.severity}</span>
+    </div>
+    <div class="detail-grid">
+      <div><div class="df-label">Pattern</div><div class="df-val" style="text-transform:capitalize">${al.fraud_type}</div></div>
+      <div><div class="df-label">Ticker</div><div class="df-val">${al.ticker}</div></div>
+      <div><div class="df-label">User</div><div class="df-val">${al.user}</div></div>
+      <div><div class="df-label">Risk Score</div><div class="df-val" style="color:${col}">${(al.score||0).toFixed(1)}%</div></div>
+      <div><div class="df-label">Z-score</div><div class="df-val" style="color:${(al.z_score||0)>3?'var(--red)':'var(--amber)'}">${(al.z_score||0).toFixed(2)}</div></div>
+      <div><div class="df-label">Status</div><div class="df-val">
+        <span class="badge b-${al.status==='open'?'open':al.status==='resolved'?'resolved':'fp'}">${al.status.replace('_',' ')}</span>
+      </div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog" style="width:${al.score}%;background:${col}"></div></div>
+    ${bkHTML?`<div style="margin-bottom:9px"><div style="font-size:9px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.09em;font-family:var(--mono);margin-bottom:4px">Breakdown</div>${bkHTML}</div>`:''}
+    ${flagsHTML}
+    ${al.status==='open'?`
+    <div class="action-row" style="margin-top:9px">
+      <button class="btn confirm" onclick="resolveAlert('${al.id}',true)">✓ Confirm Fraud</button>
+      <button class="btn reject"  onclick="resolveAlert('${al.id}',false)">✗ Mark False Positive</button>
+    </div>`:`<div style="margin-top:9px;font-size:11px;color:var(--txt-3)">Case closed — ${al.status.replace('_',' ')}</div>`}
+  </div>`;
+}
+
+function resolveAlert(id,isFraud){
+  const al=S.alerts.find(x=>x.id===id);
+  if(!al)return;
+  al.status=isFraud?'resolved':'false_positive';
+  if(!MOCK) apiCall('/feedback','POST',{alert_id:id,is_fraud:isFraud});
+  S.selAlert=null;
+  document.getElementById('alert-detail-body').innerHTML='<div style="color:var(--txt-2);font-size:12px">Case updated. Select another alert.</div>';
+  updateDash();
+}
+
+// ── FP table ──────────────────────────────────────────────────────────
+function renderFP(){
+  const f=document.getElementById('fp-filter')?.value||'all';
+  let rows=S.alerts;
+  if(f!=='all') rows=rows.filter(a=>a.status===f);
+  set('fp-cnt',rows.length);
+  const badge=s=>s==='false_positive'?'<span class="badge b-fp">FP</span>'
+    :s==='resolved'?'<span class="badge b-resolved">fraud</span>'
+    :'<span class="badge b-open">open</span>';
+
+  document.getElementById('fp-tbody').innerHTML=rows.slice(0,50).map(a=>`
+    <tr>
+      <td>${badge(a.status)}</td>
+      <td style="color:var(--txt-3)">${a.id.slice(0,12)}</td>
+      <td style="font-weight:600">${a.ticker}</td>
+      <td style="text-transform:capitalize;color:var(--txt-2)">${a.fraud_type}</td>
+      <td style="color:var(--txt-3)">${a.user}</td>
+      <td style="color:${a.score>75?'var(--red)':'var(--amber)'}">${(a.score||0).toFixed(0)}</td>
+      <td style="color:var(--txt-3)">${a.timestamp}</td>
+      <td>${a.status==='open'?`<button class="fp-btn" onclick="resolveAlert('${a.id}',true)">fraud</button><button class="fp-btn" onclick="resolveAlert('${a.id}',false)">FP</button>`:'—'}</td>
+    </tr>`).join('')||'<tr><td colspan="8" style="padding:10px;color:var(--txt-3);text-align:center">No records</td></tr>';
+
+  const rev=S.alerts.filter(a=>a.status!=='open').length;
+  const fp =S.alerts.filter(a=>a.status==='false_positive').length;
+  set('fp-reviewed',rev);
+  set('fp-fraud',S.alerts.filter(a=>a.status==='resolved').length);
+  set('fp-fpos',fp);
+  set('fp-rate',rev>0?(fp/rev*100).toFixed(1)+'%':'—');
+}
+
+// ── Fraud type grid ───────────────────────────────────────────────────
+function renderFraudTypes(){
+  const types=['spoofing','layering','wash-trading','front-running','pump-dump'];
+  const wrap=document.getElementById('fraud-grid');
+  if(!wrap)return;
+  wrap.innerHTML=types.map(t=>{
+    const tot=S.alerts.filter(a=>a.fraud_type===t).length;
+    const res=S.alerts.filter(a=>a.fraud_type===t&&a.status!=='open').length;
+    const pct=tot>0?Math.round(res/tot*100):0;
+    return`<div style="background:var(--elevated);border-radius:var(--r);padding:9px 11px">
+      <div style="font-size:11px;font-weight:600;text-transform:capitalize;margin-bottom:4px">${t}</div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--txt-2);margin-bottom:4px">
+        <span>flagged: ${tot}</span><span style="color:var(--green)">resolved: ${res}</span>
+      </div>
+      <div style="height:3px;background:var(--border-dim);border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:var(--green);border-radius:2px;transition:width .5s"></div>
+      </div>
+    </div>`;}).join('');
+}
+
+// ── Navigation ────────────────────────────────────────────────────────
+function go(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    if(n.getAttribute('onclick')?.includes(page)) n.classList.add('active');
+  });
+  if(page==='alerts')    renderAlerts();
+  if(page==='fp')        renderFP();
+  if(page==='investigate') renderFraudTypes();
+}
+
+// ── Clock ─────────────────────────────────────────────────────────────
+function tick(){set('clock',new Date().toLocaleTimeString('en',{hour12:false}));}
+tick(); setInterval(tick,1000);
+
+// ── Auto-sim ──────────────────────────────────────────────────────────
+(async function boot(){
+  for(let i=0;i<10;i++) await new Promise(r=>setTimeout(r,i*180)).then(()=>sim());
+  setInterval(sim,1800);
+})();
+</script>
+</body>
+</html>
