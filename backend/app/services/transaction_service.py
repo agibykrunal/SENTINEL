@@ -1,6 +1,6 @@
 """
 Service layer — orchestrates the detection engine, builds alerts,
-and exposes clean functions for the API routes.
+and exposes clean functions for the API route
 """
 
 from __future__ import annotations
